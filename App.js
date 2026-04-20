@@ -14,6 +14,21 @@ const dummyImages = Array.from({ length: 12 });
 function ImagesTab() {
   const hasPermission = false; // we’ll change this later
 
+  async function handleGrantAccess() {
+    try {
+      const permission =
+        await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+      if (permission.granted) {
+        console.log("Folder URI:", permission.directoryUri);
+      } else {
+        console.log("Permission denied");
+      }
+    } catch (error) {
+      console.log("Error:", error);
+    }
+  }
+
   if (!hasPermission) {
     return (
       <View
@@ -29,15 +44,7 @@ function ImagesTab() {
         </Text>
 
         <TouchableOpacity
-          onPress={async () => {
-            const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-
-            if (permission.granted) {
-              console.log("Folder URI:", permission.directoryUri);
-            } else {
-              console.log("Permission denied");
-            }
-          }}
+          onPress={handleGrantAccess}
           style={{
             backgroundColor: "#075E54",
             padding: 10,

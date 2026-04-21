@@ -12,6 +12,7 @@ const TopTab = createMaterialTopTabNavigator();
 const dummyImages = Array.from({ length: 12 });
 
 function ImagesTab() {
+  console.log(FileSystem);
   const hasPermission = false; // we’ll change this later
 
   async function handleGrantAccess() {

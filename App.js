@@ -21,7 +21,15 @@ function ImagesTab() {
         await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
 
       if (permission.granted) {
-        console.log("Folder URI:", permission.directoryUri);
+        if (permission.granted) {
+          console.log("Folder URI:", permission.directoryUri);
+
+          const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
+            permission.directoryUri
+          );
+
+          console.log("Files:", files);
+        }
       } else {
         console.log("Permission denied");
       }

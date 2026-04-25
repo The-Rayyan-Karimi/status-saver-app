@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { FlatList, Text, View, TouchableOpacity } from "react-native";
+import { useState } from "react";
+import { FlatList, Text, View, TouchableOpacity, Image } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
@@ -12,46 +13,45 @@ const TopTab = createMaterialTopTabNavigator();
 const dummyImages = Array.from({ length: 12 });
 
 function ImagesTab() {
+  const [files, setFiles] = useState([]);
   console.log(FileSystem);
   const hasPermission = false; // we’ll change this later
 
   async function handleGrantAccess() {
+    console.log("Button pressed");
+
     try {
       const permission =
         await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
 
+      console.log("After permission call");
+
       if (permission.granted) {
-        if (permission.granted) {
-          console.log("Folder URI:", permission.directoryUri);
+        console.log("GRANTED");
 
-          const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(
-            permission.directoryUri
-          );
+        console.log("Folder URI:", permission.directoryUri);
 
-          console.log("Files:", files);
-        }
+        const allFiles = FileSystem.StorageAccessFramework.readDirectoryAsync(permission.directoryUri);
+        const images = (await allFiles).filter((file) => file.endsWith(".jpg")); // what if it ends with jpeg and all
+        setFiles(images);
+        console.log("Images:", images);
       } else {
-        console.log("Permission denied");
+        console.log("DENIED");
       }
     } catch (error) {
       console.log("Error:", error);
     }
   }
 
-  if (!hasPermission) {
+  if (files.length === 0) {
     return (
       <View
         style={{
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          padding: 20,
         }}
       >
-        <Text style={{ marginBottom: 10, fontSize: 16 }}>
-          No statuses found
-        </Text>
-
         <TouchableOpacity
           onPress={handleGrantAccess}
           style={{
@@ -60,13 +60,33 @@ function ImagesTab() {
             borderRadius: 5,
           }}
         >
-          <Text style={{ color: "#fff" }}>Grant Access</Text>
+          <Text style={{ color: "#fff" }}>Load Statuses</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  return null;
+  return (
+    <FlatList
+      data={files}
+      numColumns={3}
+      keyExtractor={(item, index) => index.toString()}
+      renderItem={({ item }) => (
+        <View
+          style={{
+            flex: 1,
+            margin: 5,
+            height: 120,
+          }}
+        >
+          <Image
+            source={{ uri: item }}
+            style={{ width: "100%", height: "100%" }}
+          />
+        </View>
+      )}
+    />
+  );
 }
 
 const dummyVideos = Array.from({ length: 9 });

@@ -16,6 +16,7 @@ import {
 } from "./src/context/StatusFolderContext";
 import ImageViewerScreen from "./src/screens/ImageViewerScreen";
 import VideoPlayerScreen from "./src/screens/VideoPlayerScreen";
+import VideoThumbnail from "./src/components/VideoThumbnail";
 
 const Tab = createBottomTabNavigator();
 const TopTab = createMaterialTopTabNavigator();
@@ -139,7 +140,27 @@ function VideosTab() {
             navigation.navigate("VideoPlayer", { uri: item.uri })
           }
         >
-          <Text style={{ color: "#fff", fontSize: 28 }}>▶</Text>
+          {/* <Text style={{ color: "#fff", fontSize: 28 }}>▶</Text> */}
+          <>
+            <VideoThumbnail
+              uri={item.uri}
+              style={{
+                width: "100%",
+                height: "100%",
+                position: "absolute",
+              }}
+            />
+
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 28,
+                zIndex: 2,
+              }}
+            >
+              ▶
+            </Text>
+          </>
         </TouchableOpacity>
       )}
     />

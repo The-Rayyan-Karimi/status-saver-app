@@ -6,16 +6,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   StatusFolderProvider,
   useStatusFolder,
 } from "./src/context/StatusFolderContext";
+import ImageViewerScreen from "./src/screens/ImageViewerScreen";
 
 const Tab = createBottomTabNavigator();
 const TopTab = createMaterialTopTabNavigator();
+const RootStack = createNativeStackNavigator();
 
 function AccessPrompt({ onPress, label }) {
   return (
@@ -44,6 +47,7 @@ function TabLoading() {
 
 function ImagesTab() {
   const { images, loading, needsAccess, requestAccess } = useStatusFolder();
+  const navigation = useNavigation();
 
   if (loading) return <TabLoading />;
 
@@ -70,18 +74,22 @@ function ImagesTab() {
       numColumns={3}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <View
+        <TouchableOpacity
           style={{
             flex: 1,
             margin: 5,
             height: 120,
           }}
+          activeOpacity={0.85}
+          onPress={() =>
+            navigation.navigate("ImageViewer", { uri: item.uri })
+          }
         >
           <Image
             source={{ uri: item.uri }}
             style={{ width: "100%", height: "100%" }}
           />
-        </View>
+        </TouchableOpacity>
       )}
     />
   );
@@ -179,33 +187,42 @@ function SettingsScreen() {
   );
 }
 
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: "#075E54" },
+        headerTitle: "Status Saver",
+        headerTitleStyle: { color: "#fff" },
+        headerTintColor: "#fff",
+
+        headerRight: () => (
+          <View style={{ flexDirection: "row", marginRight: 10 }}>
+            <TouchableOpacity style={{ marginHorizontal: 10 }}>
+              <Text style={{ color: "#fff" }}>WA</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={{ marginHorizontal: 10 }}>
+              <Text style={{ color: "#fff" }}>Share</Text>
+            </TouchableOpacity>
+          </View>
+        ),
+      }}
+    >
+      <Tab.Screen name="Status" component={StatusScreen} />
+      <Tab.Screen name="Saved" component={SavedScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
+    </Tab.Navigator>
+  );
+}
+
 function AppNavigator() {
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: "#075E54" },
-          headerTitle: "Status Saver",
-          headerTitleStyle: { color: "#fff" },
-          headerTintColor: "#fff",
-
-          headerRight: () => (
-            <View style={{ flexDirection: "row", marginRight: 10 }}>
-              <TouchableOpacity style={{ marginHorizontal: 10 }}>
-                <Text style={{ color: "#fff" }}>WA</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={{ marginHorizontal: 10 }}>
-                <Text style={{ color: "#fff" }}>Share</Text>
-              </TouchableOpacity>
-            </View>
-          ),
-        }}
-      >
-        <Tab.Screen name="Status" component={StatusScreen} />
-        <Tab.Screen name="Saved" component={SavedScreen} />
-        <Tab.Screen name="Settings" component={SettingsScreen} />
-      </Tab.Navigator>
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        <RootStack.Screen name="Main" component={MainTabs} />
+        <RootStack.Screen name="ImageViewer" component={ImageViewerScreen} />
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }

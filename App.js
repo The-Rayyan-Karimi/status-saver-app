@@ -68,7 +68,7 @@ function ImagesTab() {
     <FlatList
       data={images}
       numColumns={3}
-      keyExtractor={(item, index) => index.toString()}
+      keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
         <View
           style={{
@@ -78,7 +78,7 @@ function ImagesTab() {
           }}
         >
           <Image
-            source={{ uri: item }}
+            source={{ uri: item.uri }}
             style={{ width: "100%", height: "100%" }}
           />
         </View>
@@ -113,7 +113,7 @@ function VideosTab() {
     <FlatList
       data={videos}
       numColumns={3}
-      keyExtractor={(item, index) => index.toString()}
+      keyExtractor={(item) => item.id}
       renderItem={() => (
         <View
           style={{

@@ -8,6 +8,7 @@ import {
 } from "react";
 import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { parseStatusItems } from "../utils/statusItems";
 
 const STATUS_FOLDER_URI_KEY = "@status_saver/statuses_folder_uri";
 
@@ -26,7 +27,8 @@ async function clearStoredFolderUri() {
 }
 
 async function readStatusesFromFolder(uri) {
-  return FileSystem.StorageAccessFramework.readDirectoryAsync(uri);
+  const uris = await FileSystem.StorageAccessFramework.readDirectoryAsync(uri);
+  return parseStatusItems(uris);
 }
 
 async function resolveStatusFiles({ promptIfNeeded = false, folderUri } = {}) {
@@ -160,18 +162,12 @@ export function StatusFolderProvider({ children }) {
   }, [applyLoadResult]);
 
   const images = useMemo(
-    () =>
-      allFiles.filter(
-        (file) =>
-          file.endsWith(".jpg") ||
-          file.endsWith(".jpeg") ||
-          file.endsWith(".png")
-      ),
+    () => allFiles.filter((item) => item.type === "image"),
     [allFiles]
   );
 
   const videos = useMemo(
-    () => allFiles.filter((file) => file.endsWith(".mp4")),
+    () => allFiles.filter((item) => item.type === "video"),
     [allFiles]
   );
 

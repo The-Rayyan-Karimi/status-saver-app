@@ -1,74 +1,135 @@
-import { StatusBar } from 'expo-status-bar';
-import { useState } from "react";
-import { FlatList, Text, View, TouchableOpacity, Image } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Tab = createBottomTabNavigator();
 const TopTab = createMaterialTopTabNavigator();
 
-const dummyImages = Array.from({ length: 12 });
+const STATUS_FOLDER_URI_KEY = "@status_saver/statuses_folder_uri";
 
-function ImagesTab() {
-  const [files, setFiles] = useState([]);
-  console.log(FileSystem);
-  const hasPermission = false; // we’ll change this later
+async function getStoredFolderUri() {
+  return AsyncStorage.getItem(STATUS_FOLDER_URI_KEY);
+}
 
-  async function handleGrantAccess() {
-    console.log("Button pressed");
+async function saveFolderUri(uri) {
+  await AsyncStorage.setItem(STATUS_FOLDER_URI_KEY, uri);
+}
 
-    try {
-      const permission =
-        await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+async function clearFolderUri() {
+  await AsyncStorage.removeItem(STATUS_FOLDER_URI_KEY);
+}
 
-      console.log("After permission call");
+async function readStatusesFromFolder(uri) {
+  return FileSystem.StorageAccessFramework.readDirectoryAsync(uri);
+}
 
-      if (permission.granted) {
-        console.log("GRANTED");
+/**
+ * @param {{ promptIfNeeded?: boolean }} options
+ * - promptIfNeeded false: use saved URI only; return null if none or access lost
+ * - promptIfNeeded true: show SAF picker when needed
+ * @returns {Promise<string[] | null>}
+ */
+async function getStatuses({ promptIfNeeded = false } = {}) {
+  try {
+    let folderUri = await getStoredFolderUri();
 
-        console.log("Folder URI:", permission.directoryUri);
-
-        const allFiles = FileSystem.StorageAccessFramework.readDirectoryAsync(permission.directoryUri);
-        const images = (await allFiles).filter((file) => file.endsWith(".jpg")); // what if it ends with jpeg and all
-        setFiles(images);
-        console.log("Images:", images);
-      } else {
-        console.log("DENIED");
+    if (folderUri) {
+      try {
+        return await readStatusesFromFolder(folderUri);
+      } catch (readError) {
+        console.log("Could not read saved folder, re-requesting access:", readError);
+        const permission =
+          await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+            folderUri
+          );
+        if (permission.granted) {
+          await saveFolderUri(permission.directoryUri);
+          return await readStatusesFromFolder(permission.directoryUri);
+        }
+        await clearFolderUri();
       }
-    } catch (error) {
-      console.log("Error:", error);
     }
-  }
 
-  if (files.length === 0) {
-    return (
-      <View
+    if (!promptIfNeeded) {
+      return null;
+    }
+
+    const permission =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+    if (!permission.granted) return [];
+
+    await saveFolderUri(permission.directoryUri);
+    return await readStatusesFromFolder(permission.directoryUri);
+  } catch (error) {
+    console.log(error);
+    return promptIfNeeded ? [] : null;
+  }
+}
+
+function AccessPrompt({ onPress, label }) {
+  return (
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <TouchableOpacity
+        onPress={onPress}
         style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
+          backgroundColor: "#075E54",
+          padding: 10,
+          borderRadius: 5,
         }}
       >
-        <TouchableOpacity
-          onPress={handleGrantAccess}
-          style={{
-            backgroundColor: "#075E54",
-            padding: 10,
-            borderRadius: 5,
-          }}
-        >
-          <Text style={{ color: "#fff" }}>Load Statuses</Text>
-        </TouchableOpacity>
+        <Text style={{ color: "#fff" }}>{label}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function ImagesTab({ allFiles, loading, needsAccess, onRequestAccess }) {
+  const images = allFiles.filter(
+    (file) =>
+      file.endsWith(".jpg") ||
+      file.endsWith(".jpeg") ||
+      file.endsWith(".png")
+  );
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#075E54" />
+      </View>
+    );
+  }
+
+  if (needsAccess) {
+    return (
+      <AccessPrompt
+        onPress={onRequestAccess}
+        label="Select .Statuses folder"
+      />
+    );
+  }
+
+  if (images.length === 0) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>No image statuses found</Text>
       </View>
     );
   }
 
   return (
     <FlatList
-      data={files}
+      data={images}
       numColumns={3}
       keyExtractor={(item, index) => index.toString()}
       renderItem={({ item }) => (
@@ -89,26 +150,51 @@ function ImagesTab() {
   );
 }
 
-const dummyVideos = Array.from({ length: 9 });
+function VideosTab({ allFiles, loading, needsAccess, onRequestAccess }) {
+  const videos = allFiles.filter((file) => file.endsWith(".mp4"));
 
-function VideosTab() {
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#075E54" />
+      </View>
+    );
+  }
+
+  if (needsAccess) {
+    return (
+      <AccessPrompt
+        onPress={onRequestAccess}
+        label="Select .Statuses folder"
+      />
+    );
+  }
+
+  if (videos.length === 0) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>No video statuses found</Text>
+      </View>
+    );
+  }
+
   return (
     <FlatList
-      data={dummyVideos}
+      data={videos}
       numColumns={3}
-      keyExtractor={(_, index) => index.toString()}
+      keyExtractor={(item, index) => index.toString()}
       renderItem={() => (
         <View
           style={{
             flex: 1,
             margin: 5,
             height: 120,
-            backgroundColor: "#aaa",
+            backgroundColor: "#000",
             justifyContent: "center",
             alignItems: "center",
           }}
         >
-          <Text>▶</Text>
+          <Text style={{ color: "#fff" }}>▶</Text>
         </View>
       )}
     />
@@ -116,6 +202,40 @@ function VideosTab() {
 }
 
 function StatusScreen() {
+  const [allFiles, setAllFiles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [needsAccess, setNeedsAccess] = useState(false);
+
+  async function loadStatuses(promptIfNeeded) {
+    setLoading(true);
+    const files = await getStatuses({ promptIfNeeded });
+
+    if (files === null) {
+      setNeedsAccess(true);
+      setAllFiles([]);
+    } else {
+      setNeedsAccess(false);
+      setAllFiles(files);
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadStatuses(false);
+  }, []);
+
+  function handleRequestAccess() {
+    loadStatuses(true);
+  }
+
+  const tabProps = {
+    allFiles,
+    loading,
+    needsAccess,
+    onRequestAccess: handleRequestAccess,
+  };
+
   return (
     <TopTab.Navigator
       screenOptions={{
@@ -124,8 +244,12 @@ function StatusScreen() {
         tabBarIndicatorStyle: { backgroundColor: "#fff" },
       }}
     >
-      <TopTab.Screen name="IMAGES" component={ImagesTab} />
-      <TopTab.Screen name="VIDEOS" component={VideosTab} />
+      <TopTab.Screen name="IMAGES">
+        {() => <ImagesTab {...tabProps} />}
+      </TopTab.Screen>
+      <TopTab.Screen name="VIDEOS">
+        {() => <VideosTab {...tabProps} />}
+      </TopTab.Screen>
     </TopTab.Navigator>
   );
 }

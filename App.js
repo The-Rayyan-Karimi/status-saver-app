@@ -15,6 +15,7 @@ import {
   useStatusFolder,
 } from "./src/context/StatusFolderContext";
 import ImageViewerScreen from "./src/screens/ImageViewerScreen";
+import VideoPlayerScreen from "./src/screens/VideoPlayerScreen";
 
 const Tab = createBottomTabNavigator();
 const TopTab = createMaterialTopTabNavigator();
@@ -97,6 +98,7 @@ function ImagesTab() {
 
 function VideosTab() {
   const { videos, loading, needsAccess, requestAccess } = useStatusFolder();
+  const navigation = useNavigation();
 
   if (loading) return <TabLoading />;
 
@@ -122,8 +124,8 @@ function VideosTab() {
       data={videos}
       numColumns={3}
       keyExtractor={(item) => item.id}
-      renderItem={() => (
-        <View
+      renderItem={({ item }) => (
+        <TouchableOpacity
           style={{
             flex: 1,
             margin: 5,
@@ -132,9 +134,13 @@ function VideosTab() {
             justifyContent: "center",
             alignItems: "center",
           }}
+          activeOpacity={0.85}
+          onPress={() =>
+            navigation.navigate("VideoPlayer", { uri: item.uri })
+          }
         >
-          <Text style={{ color: "#fff" }}>▶</Text>
-        </View>
+          <Text style={{ color: "#fff", fontSize: 28 }}>▶</Text>
+        </TouchableOpacity>
       )}
     />
   );
@@ -222,6 +228,7 @@ function AppNavigator() {
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         <RootStack.Screen name="Main" component={MainTabs} />
         <RootStack.Screen name="ImageViewer" component={ImageViewerScreen} />
+        <RootStack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
       </RootStack.Navigator>
     </NavigationContainer>
   );
